@@ -1,0 +1,22 @@
+cat > .gitignore << 'EOF'
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/.vite/
+
+# PHP/Laravel (se for o caso)
+backend/vendor/
+backend/storage/logs/
+backend/storage/framework/
+backend/.env
+backend/.env.*
+EOF

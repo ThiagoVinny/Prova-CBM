@@ -32,9 +32,9 @@ services:
     container_name: cbm_postgres
     restart: always
     environment:
-      POSTGRES_DB: cbm
-      POSTGRES_USER: cbm
-      POSTGRES_PASSWORD: cbm
+      POSTGRES_DB: cbmse
+      POSTGRES_USER: cbm_prova
+      POSTGRES_PASSWORD: cbm_prova_2026
     ports:
       - "5432:5432"
     volumes:

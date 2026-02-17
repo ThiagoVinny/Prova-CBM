@@ -22,13 +22,20 @@ class OccurrenceIntegrationController extends Controller
         }
 
         $type = 'occurrence.created';
-
+        $payload = $request->validated();
         $existing = CommandInbox::query()
             ->where('idempotency_key', $idempotencyKey)
             ->where('type', $type)
             ->first();
 
         if ($existing) {
+            if ($this->payloadSignature((array) $existing->payload) !== $this->payloadSignature($payload)) {
+                return response()->json([
+                    'message' => 'Idempotency-Key already used with a different payload.',
+                    'commandId' => $existing->id,
+                ], 409);
+            }
+
             return response()->json([
                 'commandId' => $existing->id,
                 'status' => 'accepted',
@@ -40,16 +47,24 @@ class OccurrenceIntegrationController extends Controller
                 'idempotency_key' => $idempotencyKey,
                 'source' => 'sistema_externo',
                 'type' => $type,
-                'payload' => $request->validated(),
+                'payload' => $payload,
                 'status' => 'pending',
             ]);
         } catch (QueryException $e) {
+            // corrida (dois requests ao mesmo tempo)
             $command = CommandInbox::query()
                 ->where('idempotency_key', $idempotencyKey)
                 ->where('type', $type)
                 ->first();
 
             if ($command) {
+                if ($this->payloadSignature((array) $command->payload) !== $this->payloadSignature($payload)) {
+                    return response()->json([
+                        'message' => 'Idempotency-Key already used with a different payload.',
+                        'commandId' => $command->id,
+                    ], 409);
+                }
+
                 return response()->json([
                     'commandId' => $command->id,
                     'status' => 'accepted',
@@ -65,5 +80,28 @@ class OccurrenceIntegrationController extends Controller
             'commandId' => $command->id,
             'status' => 'accepted',
         ], 202);
+    }
+
+    private function payloadSignature(array $payload): string
+    {
+        $normalized = $this->normalize($payload);
+
+        return hash('sha256', json_encode(
+            $normalized,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ));
+    }
+
+    private function normalize(array $data): array
+    {
+        foreach ($data as $k => $v) {
+            if (is_array($v)) {
+                $data[$k] = $this->normalize($v);
+            }
+        }
+
+        ksort($data);
+
+        return $data;
     }
 }

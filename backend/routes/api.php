@@ -8,10 +8,12 @@ use App\Http\Controllers\Internal\OccurrenceStatusController;
 use App\Http\Controllers\Internal\OccurrenceStartController;
 use App\Http\Controllers\Internal\OccurrenceFinishController;
 use App\Http\Controllers\Internal\OccurrenceController;
+use App\Http\Controllers\Internal\CommandController;
 
 Route::middleware('api.key')->group(function () {
 
     Route::get('occurrences', [OccurrenceController::class, 'index']);
+    Route::get('commands/{commandId}', [CommandController::class, 'show']);
 
     // Integração externa
     Route::post('integrations/occurrences', [OccurrenceIntegrationController::class, 'store']);

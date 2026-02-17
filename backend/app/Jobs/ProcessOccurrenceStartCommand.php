@@ -14,7 +14,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
-class ProcessOccurrenceFinishCommand implements ShouldQueue
+class ProcessOccurrenceStartCommand implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -49,7 +49,7 @@ class ProcessOccurrenceFinishCommand implements ShouldQueue
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($occ->status !== Occurrence::STATUS_RESOLVED) {
+                if ($occ->status !== Occurrence::STATUS_IN_PROGRESS) {
                     $before = [
                         'id' => $occ->id,
                         'external_id' => $occ->external_id,
@@ -59,7 +59,7 @@ class ProcessOccurrenceFinishCommand implements ShouldQueue
                         'reported_at' => $occ->getRawOriginal('reported_at'),
                     ];
 
-                    $occ->transitionTo(Occurrence::STATUS_RESOLVED);
+                    $occ->transitionTo(Occurrence::STATUS_IN_PROGRESS);
                     $occ->save();
 
                     $after = [
@@ -74,7 +74,7 @@ class ProcessOccurrenceFinishCommand implements ShouldQueue
                     AuditLog::create([
                         'entity_type' => 'occurrence',
                         'entity_id' => $occ->id,
-                        'action' => 'occurrence.resolved',
+                        'action' => 'occurrence.started',
                         'before' => $before,
                         'after' => $after,
                         'meta' => [

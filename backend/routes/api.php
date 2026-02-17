@@ -20,5 +20,5 @@ Route::middleware('api.key')->group(function () {
     Route::patch('occurrences/{occurrence}/status', [OccurrenceStatusController::class, 'update']);
 
     Route::post('occurrences/{occurrence}/start', [OccurrenceStartController::class, 'store']);
-    Route::post('occurrences/{occurrence}/finish', [OccurrenceFinishController::class, 'store']);
+    Route::post('occurrences/{occurrence}/resolve', [OccurrenceFinishController::class, 'store']);
 });

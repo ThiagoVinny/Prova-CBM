@@ -102,7 +102,7 @@ class ApiFlowTest extends TestCase
 
         $idem = 'FINISH-KEY-TEST-001';
 
-        $res1 = $this->postJson("/api/occurrences/{$occ->id}/finish", [], $this->headers([
+        $res1 = $this->postJson("/api/occurrences/{$occ->id}/resolve", [], $this->headers([
             'Idempotency-Key' => $idem,
         ]));
 
@@ -113,7 +113,7 @@ class ApiFlowTest extends TestCase
         $occ->refresh();
         $this->assertSame(Occurrence::STATUS_RESOLVED, $occ->status);
 
-        $res2 = $this->postJson("/api/occurrences/{$occ->id}/finish", [], $this->headers([
+        $res2 = $this->postJson("/api/occurrences/{$occ->id}/resolve", [], $this->headers([
             'Idempotency-Key' => $idem,
         ]));
 

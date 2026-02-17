@@ -9,9 +9,32 @@ use Illuminate\Http\Request;
 
 class OccurrenceController extends Controller
 {
+
     /**
      * GET /api/occurrences?status=&type=
      */
+    public function show(\App\Models\Occurrence $occurrence): \Illuminate\Http\JsonResponse
+    {
+        $occurrence->load(['dispatches' => function ($q) {
+            $q->orderBy('created_at', 'asc');
+        }]);
+
+        return response()->json([
+            'id' => $occurrence->id,
+            'externalId' => $occurrence->external_id,
+            'type' => $occurrence->type,
+            'status' => $occurrence->status,
+            'description' => $occurrence->description,
+            'reportedAt' => optional($occurrence->reported_at)->toIso8601String(),
+            'dispatches' => $occurrence->dispatches->map(fn($d) => [
+                'id' => $d->id,
+                'resourceCode' => $d->resource_code,
+                'status' => $d->status,
+                'createdAt' => optional($d->created_at)->toIso8601String(),
+                'updatedAt' => optional($d->updated_at)->toIso8601String(),
+            ]),
+        ]);
+    }
     public function index(Request $request): JsonResponse
     {
         $status = $request->query('status');

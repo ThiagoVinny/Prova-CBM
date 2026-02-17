@@ -3,81 +3,75 @@
 namespace App\Http\Controllers\Internal;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
+use App\Jobs\ProcessOccurrenceStatusCommand;
+use App\Models\CommandInbox;
 use App\Models\Occurrence;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use DomainException;
 
 class OccurrenceStatusController extends Controller
 {
     public function update(Request $request, Occurrence $occurrence): JsonResponse
     {
+        $idempotencyKey = (string) $request->header('Idempotency-Key');
+
+        if ($idempotencyKey === '') {
+            return response()->json(['message' => 'Missing Idempotency-Key header'], 422);
+        }
+
         $data = $request->validate([
             'status' => ['required', 'string', 'in:reported,in_progress,resolved,cancelled'],
         ]);
 
-        try {
-            $updated = DB::transaction(function () use ($occurrence, $data) {
-                $locked = Occurrence::query()
-                    ->where('id', $occurrence->id)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+        $type = 'occurrence.status';
+        $payload = [
+            'occurrenceId' => $occurrence->id,
+            'status' => $data['status'],
+        ];
 
-                $newStatus = $data['status'];
+        $existing = CommandInbox::query()
+            ->where('idempotency_key', $idempotencyKey)
+            ->where('type', $type)
+            ->first();
 
-                // Idempotência: se já está no status pedido, retorna 200
-                if ($locked->status === $newStatus) {
-                    return $locked;
-                }
+        if ($existing) {
+            $existingOccId = (string) (($existing->payload ?? [])['occurrenceId'] ?? '');
+            $existingStatus = (string) (($existing->payload ?? [])['status'] ?? '');
 
-                $before = [
-                    'id' => $locked->id,
-                    'external_id' => $locked->external_id,
-                    'type' => $locked->type,
-                    'status' => $locked->status,
-                    'description' => $locked->description,
-                    'reported_at' => $locked->getRawOriginal('reported_at'),
-                ];
+            if ($existingOccId !== $occurrence->id || $existingStatus !== $data['status']) {
+                return response()->json([
+                    'message' => 'Idempotency-Key already used for a different occurrence status payload.',
+                    'commandId' => $existing->id,
+                ], 409);
+            }
 
-                $locked->transitionTo($newStatus);
-                $locked->save();
-
-                $after = [
-                    'id' => $locked->id,
-                    'external_id' => $locked->external_id,
-                    'type' => $locked->type,
-                    'status' => $locked->status,
-                    'description' => $locked->description,
-                    'reported_at' => $locked->getRawOriginal('reported_at'),
-                ];
-
-                AuditLog::create([
-                    'entity_type' => 'occurrence',
-                    'entity_id' => $locked->id,
-                    'action' => 'occurrence.status_changed',
-                    'before' => $before,
-                    'after' => $after,
-                    'meta' => [
-                        'source' => 'operador_web',
-                    ],
-                ]);
-
-                return $locked;
-            });
-        } catch (DomainException $e) {
-            return response()->json([
-                'message' => $e->getMessage(),
-            ], 409);
+            return response()->json(['commandId' => $existing->id, 'status' => 'accepted'], 202);
         }
 
-        return response()->json([
-            'id' => $updated->id,
-            'externalId' => $updated->external_id,
-            'type' => $updated->type,
-            'status' => $updated->status,
-            'updatedAt' => $updated->updated_at?->toISOString(),
-        ]);
+        try {
+            $cmd = CommandInbox::query()->create([
+                'idempotency_key' => $idempotencyKey,
+                'source'          => 'operador_web',
+                'type'            => $type,
+                'payload'         => $payload,
+                'status'          => 'pending',
+            ]);
+        } catch (QueryException $e) {
+            $cmd = CommandInbox::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('type', $type)
+                ->first();
+
+            if ($cmd) {
+                return response()->json(['commandId' => $cmd->id, 'status' => 'accepted'], 202);
+            }
+
+            throw $e;
+        }
+
+        ProcessOccurrenceStatusCommand::dispatch($cmd->id);
+
+        return response()->json(['commandId' => $cmd->id, 'status' => 'accepted'], 202);
     }
 }

@@ -131,21 +131,31 @@ class ApiFlowTest extends TestCase
             'reported_at' => now(),
         ]);
 
+        // create agora é async → 202 + commandId
         $create = $this->postJson(
             "/api/occurrences/{$occ->id}/dispatches",
             ['resourceCode' => 'ABT-12'],
             $this->headers(['Idempotency-Key' => 'DISP-KEY-001'])
         );
 
-        $this->assertContains($create->getStatusCode(), [200, 201]);
-        $dispatchId = $create->json('id');
+        $create->assertStatus(202);
+
+        $cmdId = $create->json('commandId');
+        $this->assertNotEmpty($cmdId);
+
+        $cmd = CommandInbox::query()->findOrFail($cmdId);
+
+        // como os testes usam queue sync, o job já executou e o payload já tem dispatchId
+        $dispatchId = (string) (($cmd->payload ?? [])['dispatchId'] ?? '');
         $this->assertNotEmpty($dispatchId);
 
+        // status também async → 202
         $update1 = $this->patchJson(
             "/api/dispatches/{$dispatchId}/status",
             ['status' => 'en_route'],
             $this->headers(['Idempotency-Key' => 'DISP-STATUS-001'])
         );
+
         $this->assertContains($update1->getStatusCode(), [200, 202]);
 
         $update2 = $this->patchJson(

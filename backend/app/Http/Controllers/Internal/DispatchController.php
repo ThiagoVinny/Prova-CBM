@@ -3,91 +3,75 @@
 namespace App\Http\Controllers\Internal;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
-use App\Models\Dispatch;
+use App\Jobs\ProcessDispatchCreateCommand;
+use App\Models\CommandInbox;
 use App\Models\Occurrence;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DispatchController extends Controller
 {
     public function store(Request $request, Occurrence $occurrence): JsonResponse
     {
+        $idempotencyKey = (string) $request->header('Idempotency-Key');
+
+        if ($idempotencyKey === '') {
+            return response()->json(['message' => 'Missing Idempotency-Key header'], 422);
+        }
+
         $data = $request->validate([
             'resourceCode' => ['required', 'string', 'max:255'],
         ]);
 
-        $dispatch = DB::transaction(function () use ($occurrence, $data) {
-            $occ = Occurrence::query()->where('id', $occurrence->id)->lockForUpdate()->firstOrFail();
+        $type = 'dispatch.create';
+        $payload = [
+            'occurrenceId' => $occurrence->id,
+            'resourceCode' => $data['resourceCode'],
+        ];
 
-            $dispatch = Dispatch::create([
-                'occurrence_id' => $occ->id,
-                'resource_code' => $data['resourceCode'],
-                'status' => Dispatch::STATUS_ASSIGNED,
-            ]);
+        $existing = CommandInbox::query()
+            ->where('idempotency_key', $idempotencyKey)
+            ->where('type', $type)
+            ->first();
 
-            if ($occ->status === Occurrence::STATUS_REPORTED) {
-                $beforeOcc = [
-                    'id' => $occ->id,
-                    'external_id' => $occ->external_id,
-                    'type' => $occ->type,
-                    'status' => $occ->status,
-                    'description' => $occ->description,
-                    'reported_at' => $occ->getRawOriginal('reported_at'),
-                ];
+        if ($existing) {
+            $existingOccId = (string) (($existing->payload ?? [])['occurrenceId'] ?? '');
+            $existingRes   = (string) (($existing->payload ?? [])['resourceCode'] ?? '');
 
-                $occ->transitionTo(Occurrence::STATUS_IN_PROGRESS);
-                $occ->save();
-
-                $afterOcc = [
-                    'id' => $occ->id,
-                    'external_id' => $occ->external_id,
-                    'type' => $occ->type,
-                    'status' => $occ->status,
-                    'description' => $occ->description,
-                    'reported_at' => $occ->getRawOriginal('reported_at'),
-                ];
-
-                AuditLog::create([
-                    'entity_type' => 'occurrence',
-                    'entity_id' => $occ->id,
-                    'action' => 'occurrence.status_changed_by_dispatch',
-                    'before' => $beforeOcc,
-                    'after' => $afterOcc,
-                    'meta' => [
-                        'source' => 'operador_web',
-                        'dispatchId' => $dispatch->id,
-                    ],
-                ]);
+            if ($existingOccId !== $occurrence->id || $existingRes !== $data['resourceCode']) {
+                return response()->json([
+                    'message' => 'Idempotency-Key already used for a different dispatch payload.',
+                    'commandId' => $existing->id,
+                ], 409);
             }
 
-            AuditLog::create([
-                'entity_type' => 'dispatch',
-                'entity_id' => $dispatch->id,
-                'action' => 'dispatch.created',
-                'before' => null,
-                'after' => [
-                    'id' => $dispatch->id,
-                    'occurrence_id' => $dispatch->occurrence_id,
-                    'resource_code' => $dispatch->resource_code,
-                    'status' => $dispatch->status,
-                ],
-                'meta' => [
-                    'source' => 'operador_web',
-                    'occurrenceId' => $occ->id,
-                ],
+            return response()->json(['commandId' => $existing->id, 'status' => 'accepted'], 202);
+        }
+
+        try {
+            $cmd = CommandInbox::query()->create([
+                'idempotency_key' => $idempotencyKey,
+                'source'          => 'operador_web',
+                'type'            => $type,
+                'payload'         => $payload,
+                'status'          => 'pending',
             ]);
+        } catch (QueryException $e) {
+            $cmd = CommandInbox::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->where('type', $type)
+                ->first();
 
-            return $dispatch;
-        });
+            if ($cmd) {
+                return response()->json(['commandId' => $cmd->id, 'status' => 'accepted'], 202);
+            }
 
-        return response()->json([
-            'id' => $dispatch->id,
-            'occurrenceId' => $dispatch->occurrence_id,
-            'resourceCode' => $dispatch->resource_code,
-            'status' => $dispatch->status,
-            'createdAt' => $dispatch->created_at?->toISOString(),
-        ], 201);
+            throw $e;
+        }
+
+        ProcessDispatchCreateCommand::dispatch($cmd->id);
+
+        return response()->json(['commandId' => $cmd->id, 'status' => 'accepted'], 202);
     }
 }

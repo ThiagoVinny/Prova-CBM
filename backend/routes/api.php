@@ -7,8 +7,11 @@ use App\Http\Controllers\Internal\DispatchStatusController;
 use App\Http\Controllers\Internal\OccurrenceStatusController;
 use App\Http\Controllers\Internal\OccurrenceStartController;
 use App\Http\Controllers\Internal\OccurrenceFinishController;
+use App\Http\Controllers\Internal\OccurrenceController;
 
 Route::middleware('api.key')->group(function () {
+
+    Route::get('occurrences', [OccurrenceController::class, 'index']);
 
     // Integração externa
     Route::post('integrations/occurrences', [OccurrenceIntegrationController::class, 'store']);

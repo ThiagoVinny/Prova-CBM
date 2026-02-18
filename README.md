@@ -200,7 +200,7 @@ Status:
 <img width="1294" height="475" alt="Captura de tela 2026-02-17 230404" src="https://github.com/user-attachments/assets/f7d6954b-5746-4a01-8829-132f9e374fb6" />
 
 <!--
-![Diagrama de Arquitetura](docs/arquitetura.png)
+![Diagrama de Arquitetura](assets/arquitetura.png)
 -->
 
 ---

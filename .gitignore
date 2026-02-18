@@ -12,6 +12,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/.next/
 frontend/.vite/
+frontend/.env
 
 # PHP/Laravel (se for o caso)
 backend/vendor/

@@ -62,6 +62,21 @@ services:
     networks:
       - cbm_network
 
+  worker:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: cbm_worker
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    depends_on:
+      - postgres
+      - redis
+    command: php artisan queue:work --sleep=1 --tries=1 --timeout=90
+    networks:
+      - cbm_network
+
 volumes:
   pgdata:
 

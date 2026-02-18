@@ -44,7 +44,7 @@ class ApiFlowTest extends TestCase
         ]);
 
         $res->assertStatus(422);
-        $res->assertJsonFragment(['message' => 'Missing Idempotency-Key header']);
+        $res->assertJsonFragment(['message' => 'Idempotency-Key ausente']);
     }
 
     public function test_start_occurrence_is_idempotent_and_transitions_to_in_progress(): void

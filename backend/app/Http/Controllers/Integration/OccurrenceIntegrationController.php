@@ -17,7 +17,7 @@ class OccurrenceIntegrationController extends Controller
 
         if ($idempotencyKey === '') {
             return response()->json([
-                'message' => 'Missing Idempotency-Key header',
+                'message' => 'Cabeçalho da chave de idempotência ausente',
             ], 400);
         }
 
@@ -31,7 +31,7 @@ class OccurrenceIntegrationController extends Controller
         if ($existing) {
             if ($this->payloadSignature((array) $existing->payload) !== $this->payloadSignature($payload)) {
                 return response()->json([
-                    'message' => 'Idempotency-Key already used with a different payload.',
+                    'message' => 'A chave de idempotência já foi usada com uma carga útil diferente.',
                     'commandId' => $existing->id,
                 ], 409);
             }
@@ -60,7 +60,7 @@ class OccurrenceIntegrationController extends Controller
             if ($command) {
                 if ($this->payloadSignature((array) $command->payload) !== $this->payloadSignature($payload)) {
                     return response()->json([
-                        'message' => 'Idempotency-Key already used with a different payload.',
+                        'message' => 'A chave de idempotência já foi usada com uma carga útil diferente.',
                         'commandId' => $command->id,
                     ], 409);
                 }

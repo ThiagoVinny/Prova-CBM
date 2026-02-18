@@ -15,19 +15,19 @@ class ApiKeyMiddleware
 
         if (!$expected) {
             return response()->json([
-                'message' => 'API key not configured',
+                'message' => 'API KEY não configurada no servidor',
             ], 500);
         }
 
         if (!$provided) {
             return response()->json([
-                'message' => 'Missing X-API-Key header',
+                'message' => 'Cabeçalho X-API-Key ausente',
             ], 401);
         }
 
         if (!hash_equals($expected, $provided)) {
             return response()->json([
-                'message' => 'Invalid API key',
+                'message' => 'API KEY fornecida é inválida',
             ], 403);
         }
 

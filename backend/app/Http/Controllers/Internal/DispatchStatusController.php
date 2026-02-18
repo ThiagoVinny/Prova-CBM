@@ -17,7 +17,7 @@ class DispatchStatusController extends Controller
         $idempotencyKey = (string) $request->header('Idempotency-Key');
 
         if ($idempotencyKey === '') {
-            return response()->json(['message' => 'Missing Idempotency-Key header'], 422);
+            return response()->json(['message' => 'Cabeçalho da Idempotency-Key ausente'], 422);
         }
 
         $data = $request->validate([
@@ -41,7 +41,7 @@ class DispatchStatusController extends Controller
 
             if ($existingDispatchId !== $dispatch->id || $existingStatus !== $data['status']) {
                 return response()->json([
-                    'message' => 'Idempotency-Key already used for a different dispatch status payload.',
+                    'message' => 'Idempotency-Key já está sendo usada para uma carga útil de status de despacho diferente.',
                     'commandId' => $existing->id,
                 ], 409);
             }

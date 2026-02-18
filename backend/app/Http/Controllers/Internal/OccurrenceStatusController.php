@@ -17,7 +17,7 @@ class OccurrenceStatusController extends Controller
         $idempotencyKey = (string) $request->header('Idempotency-Key');
 
         if ($idempotencyKey === '') {
-            return response()->json(['message' => 'Missing Idempotency-Key header'], 422);
+            return response()->json(['message' => 'Idempotency-Key ausente'], 422);
         }
 
         $data = $request->validate([
@@ -41,7 +41,7 @@ class OccurrenceStatusController extends Controller
 
             if ($existingOccId !== $occurrence->id || $existingStatus !== $data['status']) {
                 return response()->json([
-                    'message' => 'Idempotency-Key already used for a different occurrence status payload.',
+                    'message' => 'Idempotency-Key já utilizado para uma carga útil de status de ocorrência diferente.',
                     'commandId' => $existing->id,
                 ], 409);
             }

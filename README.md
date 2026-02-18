@@ -8,12 +8,6 @@ Sistema para criação, acompanhamento e atualização de ocorrências e despach
 - Rastreabilidade (Command Inbox + Audit Log)
 
 ---
-
-Acesso ao Sistema em Dev
-- Frontend (Dev): http://138.197.101.197:8088
-- Local (Frontend): http://localhost:5173
-- Local (API): http://localhost:8000/api
-
 Para desenvolvimento local, consulte "1. Como Rodar Backend e Frontend".
 
 ---

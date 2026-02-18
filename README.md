@@ -9,7 +9,7 @@ Implementação do desafio “CBM” com foco em **integração assíncrona**, *
 **Backend**
 - Laravel (PHP-FPM) + Nginx
 - Postgres (persistência)
-- Redis (disponível no compose)
+- Redis (cache/fila)
 - Fila: Laravel Queue com driver **database** (jobs na tabela `jobs`)
 
 **Frontend**
@@ -80,6 +80,26 @@ VITE_API_KEY=cbm_prova_2026_key
 ```
 
 O compose já inicia o Vite em `localhost:5173`.
+
+---
+
+## Estrutura de Portas
+
+| Serviço | Porta | Descrição |
+|---|---:|---|
+| Frontend (React/Vite) | 5173 | Interface web do sistema |
+| Nginx (Laravel) | 8000 | Backend HTTP (API + web) |
+| PostgreSQL | 5432 | Banco de dados |
+| Redis | 6379 | Cache/infra (disponível no compose) |
+
+---
+
+## Links locais (atalhos)
+
+- **Sistema (Frontend):** http://localhost:5173  
+- **Backend (Laravel):** http://localhost:8000  
+- **API Base:** http://localhost:8000/api
+
 
 ---
 
@@ -338,4 +358,3 @@ docker compose up -d worker
 - [x] Auditoria (status de ocorrência e despacho + metadados de origem)
 - [x] Frontend React consumindo API
 - [x] Testes mínimos (idempotência, status válido/inválido, auditoria, concorrência simulada)
-

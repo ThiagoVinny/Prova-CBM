@@ -40,7 +40,6 @@ export function OccurrenceList({
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
 
-  // Modal "Nova ocorrência" (usa endpoint de integração)
   const [openNew, setOpenNew] = useState(false)
   const [newExternalId, setNewExternalId] = useState(() => `EXT-${new Date().getFullYear()}-${Date.now()}`)
   const [newType, setNewType] = useState('incendio_urbano')
@@ -65,10 +64,8 @@ export function OccurrenceList({
 
   useEffect(() => {
     load()
-    // refresh silencioso
     const t = setInterval(() => load(true), 6000)
     return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, perPage, status, type])
 
   const filtered = useMemo(() => {
@@ -96,7 +93,6 @@ export function OccurrenceList({
       setNewExternalId(`EXT-${new Date().getFullYear()}-${Date.now()}`)
       setNewDesc('')
 
-      // depois de alguns segundos o worker vai processar; fazemos refresh silencioso
       setTimeout(() => load(true), 1200)
     } catch (e: any) {
       pushToast('Não foi possível criar a ocorrência')

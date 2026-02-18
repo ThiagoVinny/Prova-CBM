@@ -50,7 +50,6 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function makeIdempotencyKey(prefix = 'ESPECTRALL'): string {
-  // crypto.randomUUID existe no Chrome/Edge
   const uuid = (globalThis.crypto && 'randomUUID' in globalThis.crypto)
     ? (globalThis.crypto as any).randomUUID()
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`

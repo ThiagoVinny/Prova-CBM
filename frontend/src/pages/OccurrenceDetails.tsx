@@ -52,7 +52,6 @@ export function OccurrenceDetails({
     load()
     const t = setInterval(() => load(true), 6000)
     return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const status: OccurrenceStatus | null = occ?.status ?? null
@@ -66,7 +65,6 @@ export function OccurrenceDetails({
 
     try {
       const { commandId } = await fn()
-      // Não mostramos commandId: só aguardamos e atualizamos
       const result = await waitCommand(commandId)
 
       if (result === 'failed') {

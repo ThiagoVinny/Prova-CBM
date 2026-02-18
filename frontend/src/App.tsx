@@ -9,13 +9,11 @@ import { OccurrenceList } from './pages/OccurrenceList'
 export default function App() {
   const [selected, setSelected] = useState<string | null>(null)
 
-  // Toast simples
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const pushToast = (message: string) => {
     setToasts((prev) => [...prev, { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, message }])
   }
 
-  // Settings (API base / key)
   const [openSettings, setOpenSettings] = useState(false)
   const [base, setBase] = useState(getApiBase())
   const [key, setKey] = useState(getApiKey() ?? '')
